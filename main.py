@@ -7,7 +7,7 @@ import time
 
 
 def get_map(coord, delta="0.5"):
-    search_api_server = "http://static-maps.yandex.ru/1.x/"
+    search_api_server = "https://static-maps.yandex.ru/1.x/"
     api_key = "..."
     search_params = {
         "apikey": api_key,
