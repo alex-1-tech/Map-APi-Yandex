@@ -10,7 +10,7 @@ except ImportError as err:
     sys.exit(2)
 
 
-def get_map(coord, delta="0.5"):
+def get_map(coord, delta="0.5") -> str:
     # get map screen
     search_api_server = "https://static-maps.yandex.ru/1.x/"
     api_key = "dda3ddba-c9ea-4ead-9010-f43fbc15c6e3"
@@ -28,6 +28,48 @@ def get_map(coord, delta="0.5"):
     return map_file
 
 
+def get_input(keys, size) -> (int, int, int):
+    # take input from keyboard
+    x, y, xy = 0, 0, 0
+    if keys[pygame.K_UP]:
+        y = size * 0.01
+    elif keys[pygame.K_DOWN]:
+        y = -size * 0.01
+    elif keys[pygame.K_LEFT]:
+        x = size * 0.01
+    elif keys[pygame.K_RIGHT]:
+        x = -size * 0.01
+    elif keys[pygame.K_PAGEUP]:
+        xy += 0.1
+    elif keys[pygame.K_PAGEDOWN]:
+        xy -= 0.1
+
+    return x, y, xy
+
+
+def change_size(direction, size, coord):
+    if direction == 0:
+        return
+    if size + direction <= 0 or size + direction >= 10:
+        # checking for restrictions
+        print("Error, Incorrect scale")
+    else:
+        size += direction
+    # create map with new size
+    get_map(coord, str(size))
+
+
+def change_coord(coord, direction, change, size) -> str:
+    x, y = map(float, coord.split(','))
+    if direction:
+        x -= change
+    else:
+        y += change
+    coord = str(x) + ',' + str(y)
+    get_map(coord, str(size))
+    return coord
+
+
 def draw_map(coord, map_file, map_size=0.5):
     # create pygame window
     pygame.init()
@@ -36,27 +78,27 @@ def draw_map(coord, map_file, map_size=0.5):
     FPS = 60
     clock = pygame.time.Clock()
     running = True
-    during_size = 0
     while running:
         screen.blit(pygame.image.load(map_file), (0, 0))
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            elif event.type == pygame.KEYDOWN:
-                # key pressed, change size
-                if event.key == pygame.K_PAGEUP:
-                    during_size += 0.1
-                elif event.key == pygame.K_PAGEDOWN:
-                    during_size -= 0.1
-        if during_size != 0:
-            if map_size + during_size <= 0 or map_size + during_size >= 10:
-                # checking for restrictions
-                print("Error, Incorrect scale")
-            else:
-                map_size += during_size
-            during_size = 0
-            # create map with new size
-            get_map(coord, str(map_size))
+
+        # take input
+        direction_x, direction_y, direction_size \
+            = get_input(pygame.key.get_pressed(), map_size)
+
+        # change size
+        if direction_size != 0:
+            change_size(direction_size, map_size, coord)
+
+        # change coord
+        if direction_y != 0:
+            coord = change_coord(coord, False, direction_y, map_size)
+        if direction_x != 0:
+            coord = change_coord(coord, True, direction_x, map_size)
+
+        # change
         clock.tick(FPS)
         pygame.display.flip()
     pygame.quit()
