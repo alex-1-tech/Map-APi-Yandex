@@ -104,11 +104,13 @@ class Api_map(QMainWindow, Ui_MainWindow):
         # search buttons
         self.findButton.clicked.connect(self.search_object)
         self.clearButton.clicked.connect(self.clear_object)
+
     def clear_object(self):
         self.input_text.setText('')
         self.output_text.setText('')
         self.pt = None
         self.get_map()
+
     def search_object(self):
         address = self.input_text.text()
 
@@ -171,6 +173,9 @@ class Api_map(QMainWindow, Ui_MainWindow):
         self.get_map()
 
     def keyPressEvent(self, event):
+        # key input
+
+        # change coord
         if event.key() == Qt.Key_Up or event.key() == Qt.Key_W:
             self.direction_y = 0.008
         elif event.key() == Qt.Key_Down or event.key() == Qt.Key_S:
@@ -179,6 +184,7 @@ class Api_map(QMainWindow, Ui_MainWindow):
             self.direction_x = 0.008
         elif event.key() == Qt.Key_Right or event.key() == Qt.Key_D:
             self.direction_x = - 0.008
+        # change size
         elif event.key() == Qt.Key_PageUp:
             if self.zoom < 19:
                 self.zoom += 1
@@ -186,15 +192,18 @@ class Api_map(QMainWindow, Ui_MainWindow):
             if self.zoom > 1:
                 self.zoom -= 1
         else:
+            # ignore input
             return
         self.change_coord()
         self.get_map()
 
     def closeEvent(self, event):
+        # delete all files
         os.remove(self.map_file)
 
 
 if __name__ == '__main__':
+    # start program
     app = QApplication(sys.argv)
     ex = Api_map(coord="29.914783,59.891574")
     ex.show()
