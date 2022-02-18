@@ -75,10 +75,10 @@ class Ui_MainWindow(object):
         self.schemeButton.setText(_translate("MainWindow", "Scheme"))
         self.satteliteButton.setText(_translate("MainWindow", "Satettite"))
         self.hybridButton.setText(_translate("MainWindow", "Hybrid"))
-        self.Input_name.setText(_translate("MainWindow", "Введите запрос:"))
+        self.Input_name.setText(_translate("MainWindow", "Enter a request:"))
         self.findButton.setText(_translate("MainWindow", "Find"))
         self.clearButton.setText(_translate("MainWindow", "Clear"))
-        self.output_name.setText(_translate("MainWindow", "Полный адрес:"))
+        self.output_name.setText(_translate("MainWindow", "Full address:"))
         self.checkBox.setText(_translate("MainWindow", "postal code"))
 
 
@@ -103,7 +103,12 @@ class Api_map(QMainWindow, Ui_MainWindow):
 
         # search buttons
         self.findButton.clicked.connect(self.search_object)
-
+        self.clearButton.clicked.connect(self.clear_object)
+    def clear_object(self):
+        self.input_text.setText('')
+        self.output_text.setText('')
+        self.pt = None
+        self.get_map()
     def search_object(self):
         address = self.input_text.text()
 
