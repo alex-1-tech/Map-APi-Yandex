@@ -1,114 +1,125 @@
 try:
     import os
     import sys
-
     import pygame
     import requests
     import time
+
+    from math import sqrt, pow
+    from button import Button
 except ImportError as err:
     print("Could't load module. %s" % (err))
     sys.exit(2)
 
 
-def get_map(coord, delta="0.5") -> str:
-    # get map screen
-    search_api_server = "https://static-maps.yandex.ru/1.x/"
-    api_key = "dda3ddba-c9ea-4ead-9010-f43fbc15c6e3"
-    search_params = {
-        "apikey": api_key,
-        "ll": coord,
-        "spn": ",".join([delta, delta]),
-        'l': 'map'
-    }
-    response = requests.get(search_api_server, params=search_params)
-    map_file = "map.png"
-    # recording a screenshot to a file
-    with open(map_file, "wb") as file:
-        file.write(response.content)
-    return map_file
+class Api_map:
+    # create Map class
+    def __init__(self, coord):
+        self.coord = coord
+        self.zoom = 12
+        self.map_file = "map.png"
+        self.type = "map"
+
+    def get_map(self):
+        # get map screen
+        search_api_server = "https://static-maps.yandex.ru/1.x/"
+        api_key = "dda3ddba-c9ea-4ead-9010-f43fbc15c6e3"
+        search_params = {
+            "apikey": api_key,
+            "ll": self.coord,
+            "z": self.zoom,
+            'l': self.type,
+            'controls': ['typeSelector']
+        }
+        response = requests.get(search_api_server, params=search_params)
+        # recording a screenshot to a file
+        with open(self.map_file, "wb") as file:
+            file.write(response.content)
+
+    def get_input(self, keys) -> (int, int):
+        # take input from keyboard
+        x, y = 0, 0
+
+        if keys[pygame.K_UP]:
+            y = 0.008
+        elif keys[pygame.K_DOWN]:
+            y = -0.008
+        elif keys[pygame.K_LEFT]:
+            x = 0.008
+        elif keys[pygame.K_RIGHT]:
+            x = - 0.008
+        elif keys[pygame.K_PAGEUP]:
+            if self.zoom < 19:
+                self.zoom += 1
+        elif keys[pygame.K_PAGEDOWN]:
+            if self.zoom > 1:
+                self.zoom -= 1
+
+        return x, y
+
+    def change_coord(self, direction, change):
+        x, y = map(float, self.coord.split(','))
+        if direction:
+            x -= change * pow(2, 15 - self.zoom)
+        else:
+            y += change * pow(2, 15 - self.zoom)
+        coord = str(x) + ',' + str(y)
+        self.coord = coord
+
+    def create_buttons(self, screen, size) -> [Button, Button, Button]:
+        scheme = Button()
+        satellite = Button()
+        hybrid = Button()
+
+        scheme_button = scheme.create_button(screen, (0, 0, 0),
+                                             size[0] - 135, 20, 120, 50, 100, 'Scheme', (255, 255, 255))
+        satellite_button = satellite.create_button(screen, (0, 0, 0),
+                                                   size[0] - 135, 100, 120, 50, 100, 'Satellite', (255, 255, 255))
+        hybrid_button = hybrid.create_button(screen, (0, 0, 0),
+                                             size[0] - 135, 180, 120, 50, 100, 'Hybrid', (255, 255, 255))
+        return scheme_button, satellite_button, hybrid_button
 
 
-def get_input(keys, size) -> (int, int, int):
-    # take input from keyboard
-    x, y, xy = 0, 0, 0
-    if keys[pygame.K_UP]:
-        y = size * 0.01
-    elif keys[pygame.K_DOWN]:
-        y = -size * 0.01
-    elif keys[pygame.K_LEFT]:
-        x = size * 0.01
-    elif keys[pygame.K_RIGHT]:
-        x = -size * 0.01
-    elif keys[pygame.K_PAGEUP]:
-        xy += 0.1
-    elif keys[pygame.K_PAGEDOWN]:
-        xy -= 0.1
-
-    return x, y, xy
-
-
-def change_size(direction, size, coord):
-    if direction == 0:
-        return
-    if size + direction <= 0 or size + direction >= 10:
-        # checking for restrictions
-        print("Error, Incorrect scale")
-    else:
-        size += direction
-    # create map with new size
-    get_map(coord, str(size))
-
-
-def change_coord(coord, direction, change, size) -> str:
-    x, y = map(float, coord.split(','))
-    if direction:
-        x -= change
-    else:
-        y += change
-    coord = str(x) + ',' + str(y)
-    get_map(coord, str(size))
-    return coord
-
-
-def draw_map(coord, map_file, map_size=0.5):
+def draw_map(y_map):
     # create pygame window
     pygame.init()
-    size = width, height = 600, 450
+    size = width, height = 750, 450
     screen = pygame.display.set_mode(size)
     FPS = 60
     clock = pygame.time.Clock()
     running = True
+    map_layer_buttons = y_map.create_buttons(screen, size)
+
     while running:
-        screen.blit(pygame.image.load(map_file), (0, 0))
+        y_map.get_map()
+        screen.blit(pygame.image.load(y_map.map_file), (0, 0))
+        # draw buttons
+        for button in map_layer_buttons:
+            screen.blit(button, (0, 0))
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
 
         # take input
-        direction_x, direction_y, direction_size \
-            = get_input(pygame.key.get_pressed(), map_size)
-
-        # change size
-        if direction_size != 0:
-            change_size(direction_size, map_size, coord)
+        direction_x, direction_y \
+            = y_map.get_input(pygame.key.get_pressed())
 
         # change coord
         if direction_y != 0:
-            coord = change_coord(coord, False, direction_y, map_size)
+            y_map.change_coord(False, direction_y)
         if direction_x != 0:
-            coord = change_coord(coord, True, direction_x, map_size)
-
-        # change
+            y_map.change_coord(True, direction_x)
         clock.tick(FPS)
         pygame.display.flip()
     pygame.quit()
-    os.remove(map_file)
+    os.remove(y_map.map_file)
 
 
 def main():
     # coord = input("Введите координаты через запятую: ")
     coord = "29.914783,59.891574"
-    draw_map(coord, get_map(coord))
+    y_map = Api_map(coord)
+    draw_map(y_map)
 
 
 if __name__ == '__main__':

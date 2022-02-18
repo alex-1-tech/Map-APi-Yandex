@@ -1,10 +1,6 @@
 try:
     import pygame
     import sys
-    import random
-    import os
-
-    from settings import *
 except ImportError as err:
     print("Could't load module. %s" % err)
     sys.exit(2)
