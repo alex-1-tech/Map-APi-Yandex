@@ -1,7 +1,6 @@
 try:
     import os
     import sys
-    import pygame
     import requests
     import time
 
@@ -91,6 +90,7 @@ class Api_map(QMainWindow, Ui_MainWindow):
         self.coord = coord
         self.zoom = 12
         self.direction_x, self.direction_y = 0, 0
+        self.pt = None
         self.map_file = "map.png"
         self.type = "map"
 
@@ -100,6 +100,37 @@ class Api_map(QMainWindow, Ui_MainWindow):
         self.hybridButton.clicked.connect(partial(self.change_layer, "skl"))
         self.schemeButton.clicked.connect(partial(self.change_layer, "map"))
         self.satteliteButton.clicked.connect(partial(self.change_layer, "sat"))
+
+        # search buttons
+        self.findButton.clicked.connect(self.search_object)
+
+    def search_object(self):
+        address = self.input_text.text()
+
+        try:
+            geocoder_requests = "http://geocode-maps.yandex.ru/1.x/?apikey={0}&geocode={1}&format={2}".format(
+                "40d1649f-0493-4b70-98ba-98533de7710b", address, 'json'
+            )
+            response = requests.get(geocoder_requests)
+
+            if response:
+                json_response = response.json()
+                toponym = json_response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]
+                toponym_address = 'Address: ' + toponym["metaDataProperty"]["GeocoderMetaData"]["text"]
+                toponym_coodrinates = toponym["Point"]["pos"]
+                if self.checkBox.isChecked():
+                    toponym_address += '\npostall code : ' + toponym["metaDataProperty"] \
+                        ["GeocoderMetaData"]["Address"]["postal_code"]
+                self.output_text.setText(toponym_address)
+                self.coord = ','.join(toponym_coodrinates.split())
+                self.pt = self.coord
+                self.get_map()
+            else:
+                print("Ошибка исполнения запроса: ", geocoder_requests)
+                print("Http status:", response.status_code, f'({response.reason})')
+        except Exception as error:
+            print(error)
+            self.output_text.setText("Error")
 
     def change_layer(self, layer):
         self.type = layer
@@ -113,8 +144,10 @@ class Api_map(QMainWindow, Ui_MainWindow):
             "apikey": api_key,
             "ll": self.coord,
             "z": self.zoom,
-            'l': self.type,
+            'l': self.type
         }
+        if self.pt is not None:
+            search_params['pt'] = f"{self.pt},pmwtm1~{self.pt},org"
         response = requests.get(search_api_server, params=search_params)
 
         # recording a screenshot to a file
@@ -147,6 +180,8 @@ class Api_map(QMainWindow, Ui_MainWindow):
         elif event.key() == Qt.Key_PageDown:
             if self.zoom > 1:
                 self.zoom -= 1
+        else:
+            return
         self.change_coord()
         self.get_map()
 
